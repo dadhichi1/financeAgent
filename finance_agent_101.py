@@ -52,71 +52,66 @@ df_rides = generate_synthetic_data()
 st.title("Ride-Hailing Daily Report")
 st.sidebar.header("Options")
 
-# Select Date for Report
+# Date Selection
 selected_date = st.sidebar.date_input("Select Date for Report", datetime.now().date() - timedelta(days=1))
 selected_date_str = selected_date.strftime("%Y-%m-%d")
 
-# Filter Data for Selected Date
-daily_data = df_rides[df_rides['date'] == selected_date_str]
+# City Dropdown Selection
+cities = sorted(df_rides['city'].unique())
+selected_city = st.sidebar.selectbox("Select City", ["All"] + cities)
 
-# Generate Report Table
-st.subheader(f"Report for {selected_date_str}")
+# Filter Data for Selected Date and City
+filtered_data = df_rides[df_rides['date'] == selected_date_str]
+if selected_city != "All":
+    filtered_data = filtered_data[filtered_data['city'] == selected_city]
+
+# Generate Report
+st.subheader(f"Report for {selected_date_str}{' in ' + selected_city if selected_city != 'All' else ''}")
 
 # Daily Revenue Metrics
-daily_revenue = daily_data['fare'].sum()
-city_revenue = daily_data.groupby('city')['fare'].sum().reset_index()
+daily_revenue = filtered_data['fare'].sum()
+city_revenue = filtered_data.groupby('city')['fare'].sum().reset_index()
 city_revenue.columns = ['City', 'Revenue']
 
 # Display Metrics
 st.write(f"**Total Revenue for {selected_date_str}:** ₹{daily_revenue:,.2f}")
-st.write("**City-wise Revenue Breakdown:**")
-st.table(city_revenue)
+if selected_city == "All":
+    st.write("**City-wise Revenue Breakdown:**")
+    st.table(city_revenue)
+else:
+    st.write(f"**Revenue in {selected_city}:** ₹{daily_revenue:,.2f}")
 
-# Historical Analysis for Initiatives
-st.subheader("Historical Analysis and Initiatives")
+# Historical Analysis
+st.subheader("Historical Analysis")
 
-# Historical Revenue Analysis
-mtd_data = df_rides[df_rides['date'] >= (selected_date - timedelta(days=30)).strftime('%Y-%m-01')]
-mtd_revenue = mtd_data['fare'].sum()
-last_week_data = df_rides[df_rides['date'] >= (selected_date - timedelta(days=7)).strftime('%Y-%m-%d')]
-last_week_revenue = last_week_data['fare'].sum()
-
-# Display Historical Revenue Comparison
-historical_metrics = {
-    "Metric": ["MTD Revenue", "Last Week Revenue"],
-    "Revenue": [f"₹{mtd_revenue:,.2f}", f"₹{last_week_revenue:,.2f}"]
-}
-st.table(pd.DataFrame(historical_metrics))
-
-# Identify Underperforming Cities
-underperforming_cities = city_revenue[city_revenue['Revenue'] < city_revenue['Revenue'].mean()]
-if not underperforming_cities.empty:
-    st.write("**Underperforming Cities:**")
-    st.table(underperforming_cities)
-
-# New Initiatives Based on Analysis
-st.write("**New Initiatives:**")
-initiatives = [
-    "- Increase driver incentives in underperforming cities like Chennai and Kolkata to boost rides.",
-    "- Launch targeted marketing campaigns in ROI cities to increase ride demand.",
-    "- Optimize fare structures in Bangalore to improve revenue per ride.",
-    "- Introduce loyalty programs for frequent customers in Mumbai and Delhi."
-]
-st.markdown("\n".join(initiatives))
-
-# Visualization: City-wise Revenue
-st.subheader("City-wise Revenue Distribution")
-fig, ax = plt.subplots()
-city_revenue.plot(kind='bar', x='City', y='Revenue', color='skyblue', ax=ax)
-ax.set_ylabel('Revenue (₹)')
-st.pyplot(fig)
+# Historical Revenue Trends
+if selected_city == "All":
+    historical_trend = df_rides.groupby('date')['fare'].sum()
+else:
+    historical_trend = df_rides[df_rides['city'] == selected_city].groupby('date')['fare'].sum()
 
 # Visualization: Historical Revenue Trend
-st.subheader("Historical Revenue Trend")
-historical_trend = df_rides.groupby('date')['fare'].sum()
 fig, ax = plt.subplots()
 historical_trend.plot(kind='line', ax=ax, color='green')
+ax.set_title(f"Historical Revenue Trend{' in ' + selected_city if selected_city != 'All' else ''}")
 ax.set_ylabel('Revenue (₹)')
 ax.set_xlabel('Date')
 st.pyplot(fig)
 
+# City-wise Revenue Visualization
+if selected_city == "All":
+    st.subheader("City-wise Revenue Distribution")
+    fig, ax = plt.subplots()
+    city_revenue.plot(kind='bar', x='City', y='Revenue', color='skyblue', ax=ax)
+    ax.set_ylabel('Revenue (₹)')
+    st.pyplot(fig)
+
+# New Initiatives
+st.subheader("New Initiatives Based on Analysis")
+initiatives = [
+    "- Optimize driver incentives in underperforming cities.",
+    "- Target high-growth cities with increased marketing efforts.",
+    "- Adjust fare policies to increase revenue in price-sensitive regions.",
+    f"- Pilot new onboarding strategies in {selected_city if selected_city != 'All' else 'specific cities like Chennai'}."
+]
+st.markdown("\n".join(initiatives))
