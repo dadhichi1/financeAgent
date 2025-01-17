@@ -7,7 +7,7 @@ from tabulate import tabulate
 from termcolor import colored
 import streamlit as st
 
-def generate_synthetic_data(num_days=10, num_rides_per_day=10000):
+def generate_synthetic_data(num_days=30, num_rides_per_day=10000):
     cities = ["Mumbai", "Delhi", "Bangalore", "Chennai", "Kolkata", "Hyderabad", "Ahmedabad", "ROI"]
     city_weights = [0.25, 0.22, 0.18, 0.15, 0.08, 0.07, 0.05, 0.20]
     city_weights = np.array(city_weights) / sum(city_weights)
@@ -117,6 +117,24 @@ fig, ax = plt.subplots()
 df_rides['city'].value_counts().plot(kind='bar', color='skyblue', ax=ax)
 ax.set_xlabel('City')
 ax.set_ylabel('Number of Rides')
+st.pyplot(fig)
+
+# Historical Data Visualization: MTD Revenue vs. Last Week Revenue
+st.subheader("Historical Revenue Comparison")
+mtd_revenue = df_rides[df_rides['date'] >= (datetime.now() - timedelta(days=30)).strftime('%Y-%m-01')]['fare'].sum()
+last_week_revenue = df_rides[df_rides['date'] == (datetime.now() - timedelta(days=7)).strftime('%Y-%m-%d')]['fare'].sum()
+
+fig, ax = plt.subplots()
+ax.bar(['MTD', 'Last Week'], [mtd_revenue, last_week_revenue], color=['green', 'red'])
+ax.set_ylabel('Revenue ($)')
+st.pyplot(fig)
+
+# Historical Data Visualization: Driver Acceptance Rate
+st.subheader("Driver Acceptance Rate Over Time")
+df_rides['acceptance_rate'] = df_rides.groupby('date')['driver_acceptance'].transform('mean')
+fig, ax = plt.subplots()
+df_rides.groupby('date')['acceptance_rate'].mean().plot(kind='line', ax=ax, color='purple')
+ax.set_ylabel('Acceptance Rate')
 st.pyplot(fig)
 
 # Generate Daily Report
