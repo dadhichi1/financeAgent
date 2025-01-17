@@ -1,3 +1,4 @@
+# Import Libraries
 import pandas as pd
 import numpy as np
 from datetime import datetime, timedelta
@@ -49,7 +50,7 @@ def generate_synthetic_data(num_days=30, num_rides_per_day=10000):
 df_rides = generate_synthetic_data()
 
 # Streamlit App
-st.title("Ride-Hailing Daily Report")
+st.title("Ride-Hailing Daily Report with Projections & P&L")
 st.sidebar.header("Options")
 
 # Date Selection
@@ -65,53 +66,70 @@ filtered_data = df_rides[df_rides['date'] == selected_date_str]
 if selected_city != "All":
     filtered_data = filtered_data[filtered_data['city'] == selected_city]
 
-# Generate Report
-st.subheader(f"Report for {selected_date_str}{' in ' + selected_city if selected_city != 'All' else ''}")
+# P&L Variables
+incentive_cost = 0.3 * filtered_data['fare'][filtered_data['incentive_applied'] == 1].sum()
+operational_cost = 0.1 * filtered_data['fare'].sum()  # 10% operational costs
+total_revenue = filtered_data['fare'].sum()
+profit = total_revenue - (incentive_cost + operational_cost)
 
-# Daily Revenue Metrics
-daily_revenue = filtered_data['fare'].sum()
-city_revenue = filtered_data.groupby('city')['fare'].sum().reset_index()
-city_revenue.columns = ['City', 'Revenue']
+# P&L Report
+st.subheader(f"P&L Report for {selected_date_str}{' in ' + selected_city if selected_city != 'All' else ''}")
+pnl_data = {
+    "Total Revenue": [f"₹{total_revenue:,.2f}"],
+    "Incentive Costs": [f"₹{incentive_cost:,.2f}"],
+    "Operational Costs": [f"₹{operational_cost:,.2f}"],
+    "Net Profit": [f"₹{profit:,.2f}"]
+}
+st.table(pd.DataFrame(pnl_data))
 
-# Display Metrics
-st.write(f"**Total Revenue for {selected_date_str}:** ₹{daily_revenue:,.2f}")
-if selected_city == "All":
-    st.write("**City-wise Revenue Breakdown:**")
-    st.table(city_revenue)
-else:
-    st.write(f"**Revenue in {selected_city}:** ₹{daily_revenue:,.2f}")
-
-# Historical Analysis
-st.subheader("Historical Analysis")
-
-# Historical Revenue Trends
-if selected_city == "All":
-    historical_trend = df_rides.groupby('date')['fare'].sum()
-else:
-    historical_trend = df_rides[df_rides['city'] == selected_city].groupby('date')['fare'].sum()
-
-# Visualization: Historical Revenue Trend
+# Graph: Daily Revenue Trends
+st.subheader("Daily Revenue Trends")
+historical_trend = df_rides.groupby('date')['fare'].sum()
 fig, ax = plt.subplots()
 historical_trend.plot(kind='line', ax=ax, color='green')
-ax.set_title(f"Historical Revenue Trend{' in ' + selected_city if selected_city != 'All' else ''}")
-ax.set_ylabel('Revenue (₹)')
-ax.set_xlabel('Date')
+ax.set_title("Daily Revenue Trends")
+ax.set_ylabel("Revenue (₹)")
+ax.set_xlabel("Date")
 st.pyplot(fig)
 
-# City-wise Revenue Visualization
+# Graph: City-wise Revenue Contribution (Pie Chart)
 if selected_city == "All":
-    st.subheader("City-wise Revenue Distribution")
+    st.subheader("City-wise Revenue Contribution")
+    city_revenue = df_rides.groupby('city')['fare'].sum()
     fig, ax = plt.subplots()
-    city_revenue.plot(kind='bar', x='City', y='Revenue', color='skyblue', ax=ax)
-    ax.set_ylabel('Revenue (₹)')
+    city_revenue.plot(kind='pie', autopct='%1.1f%%', ax=ax, legend=False)
+    ax.set_ylabel("")
     st.pyplot(fig)
 
-# New Initiatives
-st.subheader("New Initiatives Based on Analysis")
-initiatives = [
-    "- Optimize driver incentives in underperforming cities.",
-    "- Target high-growth cities with increased marketing efforts.",
-    "- Adjust fare policies to increase revenue in price-sensitive regions.",
-    f"- Pilot new onboarding strategies in {selected_city if selected_city != 'All' else 'specific cities like Chennai'}."
+# Driver Acceptance Rate
+st.subheader("Driver Acceptance Rates")
+acceptance_rate = filtered_data.groupby('city')['driver_acceptance'].mean() * 100
+fig, ax = plt.subplots()
+acceptance_rate.plot(kind='bar', ax=ax, color='skyblue')
+ax.set_title("Driver Acceptance Rates by City")
+ax.set_ylabel("Acceptance Rate (%)")
+ax.set_xlabel("City")
+st.pyplot(fig)
+
+# Projections
+st.subheader("Revenue Projections")
+historical_data = df_rides.groupby('date')['fare'].sum()
+daily_growth_rate = historical_data.pct_change().mean()
+projected_revenue = historical_data[-1] * (1 + daily_growth_rate) ** np.arange(1, 31)
+
+fig, ax = plt.subplots()
+pd.Series(projected_revenue).plot(kind='line', ax=ax, color='orange')
+ax.set_title("Projected Revenue (Next 30 Days)")
+ax.set_ylabel("Projected Revenue (₹)")
+ax.set_xlabel("Days from Today")
+st.pyplot(fig)
+
+# Actionables
+st.subheader("Actionable Insights")
+actionables = [
+    "- Optimize incentive programs in cities with low driver acceptance rates.",
+    "- Increase focus on high-growth cities (e.g., Mumbai, Delhi).",
+    "- Consider scaling operations in ROI cities with consistent growth.",
+    f"- Expand pilot onboarding in {selected_city if selected_city != 'All' else 'selected cities like Chennai'}."
 ]
-st.markdown("\n".join(initiatives))
+st.markdown("\n".join(actionables))
