@@ -1,17 +1,17 @@
-import streamlit as st
 from datetime import datetime
+from typing import Dict, List
 from dataclasses import dataclass
-
+import time
 
 @dataclass
 class ExecutiveInsights:
     timestamp: datetime
     exec_id: str
     region: str = "Delhi NCR"
-
+    
     def generate_executive_dashboard(self) -> str:
         """Generate an executive-friendly yet engaging dashboard"""
-
+        
         dashboard_sections = [
             self._header(),
             self._executive_summary(),
@@ -19,9 +19,9 @@ class ExecutiveInsights:
             self._market_pulse(),
             self._profit_centers(),
             self._action_items(),
-            self._future_outlook(),
+            self._future_outlook()
         ]
-
+        
         return "\n\n".join(dashboard_sections)
 
     def _header(self) -> str:
@@ -133,20 +133,23 @@ PREDICTED OPPORTUNITIES:
 
 Status: Awaiting Your Decision"""
 
+def launch_executive_dashboard():
+    # Initialize dashboard with current timestamp
+    dashboard = ExecutiveInsights(
+        timestamp=datetime(2025, 1, 19, 20, 9, 31),
+        exec_id="dadhichi1"
+    )
+    
+    # Simple loading sequence
+    print("\nPreparing Executive Dashboard...")
+    time.sleep(1)
+    print("Analyzing Market Data...")
+    time.sleep(1)
+    print("Generating Insights...\n")
+    time.sleep(1)
+    
+    # Generate and print dashboard
+    print(dashboard.generate_executive_dashboard())
 
-# Streamlit UI
-st.title("Executive Dashboard")
-
-# Generate the dashboard
-dashboard = ExecutiveInsights(
-    timestamp=datetime.now(),
-    exec_id="dadhichi1"
-)
-
-st.markdown(dashboard._header())
-st.markdown(dashboard._executive_summary())
-st.markdown(dashboard._key_highlights())
-st.markdown(dashboard._market_pulse())
-st.markdown(dashboard._profit_centers())
-st.markdown(dashboard._action_items())
-st.markdown(dashboard._future_outlook())
+if __name__ == "__main__":
+    launch_executive_dashboard()
